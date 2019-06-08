@@ -14,7 +14,8 @@ class HybridMSEFunction(Function):
         pred = args[0]
         gt = args[1]
         ctx.resolutions = args[2]
-        loss = torch.pow(pred.sum() - gt.sum(), 2) / 160000
+#         loss = torch.pow(pred.sum() - gt.sum(), 2) / 160000
+        loss = torch.pow(pred - gt, 2).sum()
         ctx.save_for_backward(pred, gt)
         return loss
 
@@ -27,12 +28,11 @@ class HybridMSEFunction(Function):
         grad_weights = pred - gt
         grad_pred = grad_weights
         for i in ctx.resolutions:
-            ds = functional.avg_pool2d(grad_weights, kernel_size=i, stride=i)
+            ds = functional.avg_pool2d(grad_weights, kernel_size=i, stride=i) * i
             up = functional.interpolate(ds, scale_factor=i, mode='nearest')
-            grad_pred += up
-            
-        grad_pred *= (torch.ones(pred.shape, dtype=torch.float32).cuda() *
-                     grad_outputs[0])
+            sign = ((torch.abs(grad_pred) - torch.abs(up)) < 0).float()
+            grad_pred = grad_pred * sign + up * (1 - sign)
+        grad_pred *= grad_outputs[0]
         return grad_pred, None, None
 
 

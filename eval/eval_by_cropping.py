@@ -83,7 +83,9 @@ def eval_model(config, eval_loader, modules, if_show_sample=False):
             eval_gt.permute(0, 2, 3, 1).data.cpu().numpy())
         pred_counts = np.sum(validate_pred_map)
         # random show 1 sample
-        if rand_number == counter and if_show_sample:
+        rate = abs(gt_counts - pred_counts) / gt_counts
+#         if rand_number == counter and if_show_sample:
+        if rate > 0.3:
             origin_image = Image.open(config['img_path_t'] + "/IMG_" +
                                       str(eval_img_index.numpy()[0]) + ".jpg")
             show(origin_image, validate_gt_map, validate_pred_map,
